@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Countdown</title>
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@600&display=swap');
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background: #fff;
+      color: #000;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      height: 100vh;
+      margin: 0;
+      padding: 0 20px;
+      user-select: none;
+    }
+
+    h1 {
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 3px;
+      font-size: 1.4rem;
+      margin-bottom: 1.5rem;
+      color: #000;
+    }
+
+    .countdown-wrapper {
+      transform: scale(0.75);
+      transform-origin: top center;
+      margin-bottom: -30px;
+    }
+
+    .countdown {
+      display: flex;
+      gap: 3.5rem;
+      font-weight: 600;
+      text-align: center;
+      user-select: none;
+    }
+
+    .segment {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-width: 65px;
+    }
+
+    .number {
+      font-size: 3.6rem;
+      line-height: 1;
+      letter-spacing: 1.5px;
+      color: #000;
+    }
+
+    .label {
+      font-size: 0.85rem;
+      margin-top: 0.3rem;
+      letter-spacing: 2.5px;
+      color: #333;
+    }
+
+    #eventLabel {
+      margin-top: 2rem;
+      font-weight: 600;
+      font-size: 1.1rem;
+      color: #000;
+      letter-spacing: 1.5px;
+    }
+
+    #todayLabel {
+      margin-top: 0.5rem;
+      font-size: 1rem;
+      color: #333;
+      letter-spacing: 1px;
+    }
+  </style>
+</head>
+<body>
+  <h1>NEXT DAY OFF</h1>
+  <div class="countdown-wrapper">
+    <div class="countdown" role="timer" aria-live="polite">
+      <div class="segment" aria-label="Days">
+        <div class="number" id="days">--</div>
+        <div class="label">DAYS</div>
+      </div>
+      <div class="segment" aria-label="Hours">
+        <div class="number" id="hours">--</div>
+        <div class="label">HOURS</div>
+      </div>
+      <div class="segment" aria-label="Minutes">
+        <div class="number" id="minutes">--</div>
+        <div class="label">MINUTES</div>
+      </div>
+      <div class="segment" aria-label="Seconds">
+        <div class="number" id="seconds">--</div>
+        <div class="label">SECONDS</div>
+      </div>
+    </div>
+  </div>
+  <div id="eventLabel" aria-live="polite"></div>
+  <div id="todayLabel"></div>
+
+  <script>
+    const eventDates = [
+      { date: '2025-09-01' },
+      { date: '2025-09-23' },
+      { date: '2025-10-02' },
+      { date: '2025-10-24' },
+      { date: '2025-10-31' },
+      { date: '2025-11-26', holdUntil: '2025-11-29' },
+      { date: '2025-12-22', holdUntil: '2026-01-03' },
+      { date: '2026-01-16' },
+      { date: '2026-01-19' },
+      { date: '2026-01-28' },
+      { date: '2026-02-13' },
+      { date: '2026-02-16' },
+      { date: '2026-03-04' },
+      { date: '2026-03-16', holdUntil: '2026-03-21' },
+      { date: '2026-04-03' },
+      { date: '2026-04-06' },
+      { date: '2026-04-29' },
+      { date: '2026-05-25' }
+    ];
+
+    function toMidnight(dateStr) {
+      return new Date(dateStr + 'T00:00:00');
+    }
+
+    function getNextEvent(now) {
+      for (const { date, holdUntil } of eventDates) {
+        const eventDate = toMidnight(date);
+        const holdDate = holdUntil ? toMidnight(holdUntil) : null;
+
+        if (now < eventDate) return { date: eventDate };
+        if (now >= eventDate && holdDate && now < holdDate) return { date: eventDate, hold: true };
+      }
+      return null;
+    }
+
+    function isHalfDay(date) {
+      const mmdd = date.toISOString().slice(5, 10);
+      const halfDays = ['01-28', '03-04', '04-29'];
+      return halfDays.includes(mmdd);
+    }
+
+    function updateCountdown() {
+      const now = new Date();
+      const event = getNextEvent(now);
+
+      if (!event) {
+        document.getElementById("days").textContent = "0";
+        document.getElementById("hours").textContent = "0";
+        document.getElementById("minutes").textContent = "0";
+        document.getElementById("seconds").textContent = "0";
+        document.getElementById("eventLabel").textContent = "No more upcoming days off.";
+      } else {
+        const diff = Math.max(0, event.date - now);
+
+        const days = Math.floor(diff / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diff / (1000 * 60 * 60)) % 24);
+        const minutes = Math.floor((diff / (1000 * 60)) % 60);
+        const seconds = Math.floor((diff / 1000) % 60);
+
+        const isZero = event.hold || diff <= 0;
+
+        document.getElementById("days").textContent = isZero ? "0" : days;
+        document.getElementById("hours").textContent = isZero ? "0" : hours;
+        document.getElementById("minutes").textContent = isZero ? "0" : minutes;
+        document.getElementById("seconds").textContent = isZero ? "0" : seconds;
+
+        const eventLabel = document.getElementById("eventLabel");
+        if (isHalfDay(event.date)) {
+          eventLabel.textContent = "Next Half-Day";
+        } else {
+          const label = event.date.toLocaleDateString(undefined, {
+            weekday: 'short',
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+          });
+          eventLabel.textContent = `Next Day Off: ${label}`;
+        }
+      }
+
+      const todayLabel = document.getElementById("todayLabel");
+      todayLabel.textContent = "Today’s Date: " + now.toLocaleDateString(undefined, {
+        weekday: 'long',
+        year: 'numeric',
+        month: 'short',
+        day: 'numeric'
+      });
+    }
+
+    updateCountdown();
+    setInterval(updateCountdown, 1000);
+  </script>
+</body>
+</html>
